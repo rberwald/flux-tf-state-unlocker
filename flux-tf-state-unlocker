@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#{
+#    "log": "2023-08-29T22:49:47.371874924Z stderr F {\"level\":\"error\",\"ts\":\"2023-08-29T22:49:47.371Z\",\"msg\":\"detected non drift error\",\"controller\":\"terraform\",\"controllerGroup\":\"infra.contrib.fluxcd.io\",\"controllerKind\":\"Terraform\",\"Terraform\":{\"name\":\"environment-management\",\"namespace\":\"flux-system\"},\"namespace\":\"flux-system\",\"name\":\"environment-management\",\"reconcileID\":\"b9e9839e-0f4d-45d6-a389-1227eb05e050\",\"reconciliation-loop-id\":\"2b186796-664d-4499-aeaa-a2df9af800dc\",\"start-time\":\"2023-08-29T22:48:41.886Z\",\"error\":\"error running Plan: rpc error: code = Internal desc = error acquiring the state lock: Lock Info:\\n  ID:        ac8deae5-77c4-c947-9113-0c89014d79b1\\n  Path:      faber-terraform-states/faber/management/terraform.tfstate\\n  Operation: OperationTypeApply\\n  Who:       runner@environment-management-tf-runner\\n  Version:   1.5.5\\n  Created:   2023-08-29 22:40:31.206355395 +0000 UTC\\n\"}",
+#    "kubernetes": {
+#        "pod_name": "tf-controller-64dd5f654c-458vk",
+#        "namespace_name": "flux-system",
+#        "pod_id": "ae4468db-4a01-4c96-85b4-9068c891b522",
+#        "labels": {
+#            "app.kubernetes.io/instance": "tf-controller",
+#            "app.kubernetes.io/name": "tf-controller",
+#            "pod-template-hash": "64dd5f654c"
+#        },
+#        "host": "ip-10-1-3-68.eu-west-1.compute.internal",
+#        "container_name": "tf-controller",
+#        "docker_id": "f488af933c0eceb1b7552452bcaca49fd4f394541448e359b28b52fcfcfe31e5",
+#        "container_hash": "ghcr.io/weaveworks/tf-controller@sha256:bcea885830fc3bdf524817ff9ed52a28cefdb8980d4e93ce261aa7b7a85dd4fb",
+#        "container_image": "ghcr.io/weaveworks/tf-controller:v0.15.1"
+#    }
+#}
+
+NAMESPACE="${NAMESPACE:-flux-system}"
+TF_RESOURCE="${TF_RESOURCE:-environment-management}"
+
+LAST_MESSAGE=$(kubectl get terraform ${TF_RESOURCE} -n ${NAMESPACE} -o json | jq -r '.status.conditions | sort_by(.lastTransitionTime) | reverse | .[0].message')
+
+FOUND_ERROR=$(echo ${LAST_MESSAGE} | grep "code = Internal desc = error acquiring the state lock")
+
+if [ -z "${FOUND_ERROR}" ]
+then
+  exit 0
+fi
+
+# Make sure the TF runner is holding the lock
+SELF_HOLD=$(echo $LAST_MESSAGE | grep -E 'Who:[ ]*runner@.*-tf-runner')
+[ -z "${SELF_HOLD}" ]
+then
+  # Someone else is holding the lock, just leave it be.
+  exit 0
+fi
+
+kubectl patch terraform ${TF_RESOURCE} -n ${NAMESPACE} -p '{"spec":{"tfstate": {"forceUnlock":"auto"}}}'
