@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 #{
 #    "log": "2023-08-29T22:49:47.371874924Z stderr F {\"level\":\"error\",\"ts\":\"2023-08-29T22:49:47.371Z\",\"msg\":\"detected non drift error\",\"controller\":\"terraform\",\"controllerGroup\":\"infra.contrib.fluxcd.io\",\"controllerKind\":\"Terraform\",\"Terraform\":{\"name\":\"environment-management\",\"namespace\":\"flux-system\"},\"namespace\":\"flux-system\",\"name\":\"environment-management\",\"reconcileID\":\"b9e9839e-0f4d-45d6-a389-1227eb05e050\",\"reconciliation-loop-id\":\"2b186796-664d-4499-aeaa-a2df9af800dc\",\"start-time\":\"2023-08-29T22:48:41.886Z\",\"error\":\"error running Plan: rpc error: code = Internal desc = error acquiring the state lock: Lock Info:\\n  ID:        ac8deae5-77c4-c947-9113-0c89014d79b1\\n  Path:      faber-terraform-states/faber/management/terraform.tfstate\\n  Operation: OperationTypeApply\\n  Who:       runner@environment-management-tf-runner\\n  Version:   1.5.5\\n  Created:   2023-08-29 22:40:31.206355395 +0000 UTC\\n\"}",
 #    "kubernetes": {
