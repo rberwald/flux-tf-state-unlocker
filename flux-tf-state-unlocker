@@ -33,10 +33,10 @@ fi
 
 # Make sure the TF runner is holding the lock
 SELF_HOLD=$(echo $LAST_MESSAGE | grep -E 'Who:[ ]*runner@.*-tf-runner')
-[ -z "${SELF_HOLD}" ]
+if [ -z "${SELF_HOLD}" ]
 then
   # Someone else is holding the lock, just leave it be.
   exit 0
 fi
 
-kubectl patch terraform ${TF_RESOURCE} -n ${NAMESPACE} -p '{"spec":{"tfstate": {"forceUnlock":"auto"}}}'
+echo Would have executed: kubectl patch terraform ${TF_RESOURCE} -n ${NAMESPACE} -p '{"spec":{"tfstate": {"forceUnlock":"auto"}}}'
