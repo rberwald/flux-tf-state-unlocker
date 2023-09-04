@@ -122,7 +122,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.MY_GITHUB_TOKEN }}
+          password: ${{ secrets.GH_ACTIONS_PUBLISH }}
       - name: Build container
         uses: docker/build-push-action@v4
         with:
