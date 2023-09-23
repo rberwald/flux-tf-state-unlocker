@@ -10,4 +10,4 @@ docker build \
   --tag ghcr.io/rberwald/flux-tf-state-unlocker:${KUBERNETES_VERSION} \
   .
 
-docker push ghcr.io/rberwald/flux-tf-state-unlocker:${KUBERNETES_VERSION}-1
+docker push ghcr.io/rberwald/flux-tf-state-unlocker:${KUBERNETES_VERSION}
