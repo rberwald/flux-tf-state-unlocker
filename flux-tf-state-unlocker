@@ -83,7 +83,7 @@ set -x
 # Determine timestamp that lastTimestamp should be checked for
 export TZ=UTC # force all timestamps to be in UTC (+00:00 / Z)
 now=$(date +%s)
-start_date_epoch=$((now - 500000*60))
+start_date_epoch=$((now - 5*60))
 printf -v start_date_iso8601 '%(%Y-%m-%dT%H:%M:%S+00:00)T' "$start_date_epoch"
 
 EVENT_EXPORTER_POD=$(kubectl get pod -n kube-system -l app=event-exporter -o=name)
