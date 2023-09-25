@@ -1,5 +1,6 @@
 #!/bin/bash
 
+exec 2>&1
 set -x
 
 #
@@ -86,6 +87,7 @@ now=$(date +%s)
 start_date_epoch=$((now - 5*60))
 printf -v start_date_iso8601 '%(%Y-%m-%dT%H:%M:%S+00:00)T' "$start_date_epoch"
 
+# Look up the events in the event exporter pod
 EVENT_EXPORTER_POD=$(kubectl get pod -n kube-system -l app=event-exporter -o=name)
 
 LOCKED=$(kubectl logs ${EVENT_EXPORTER_POD} -n kube-system | \
@@ -109,6 +111,7 @@ do
 #            }
 #        },
 
+  # Check who locked the terraform run
   WHO_LOCKED=$(aws dynamodb scan --table-name faber-terraform-locks | jq -r '.Items[] | select(.Info != null) | .Info.S' | jq -r --arg lock_id "$LOCK_ID" 'select(.ID == $lock_id)| .Who')
 
   LOCKED_BY_RUNNER=$(echo $WHO_LOCKED | grep "^runner@${LOCK_OBJECT}-tf-runner")
