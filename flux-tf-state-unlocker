@@ -92,7 +92,7 @@ EVENT_EXPORTER_POD=$(kubectl get pod -n kube-system -l app=event-exporter -o=nam
 
 LOCKED=$(kubectl logs ${EVENT_EXPORTER_POD} -n kube-system | \
   jq -r '. | select(.message|test(".*State locked with Lock Identifier.*")) | .' | \
-  jq -r --arg start_date "$start_date_iso8601" 'select($start_date < .lastTimestamp)| (.message | split(" ")[-1]) + ":" + .involvedObject.name' | \
+  jq -r '. | (.message | split(" ")[-1]) + ":" + .involvedObject.name' | \
   sort -u)
 
 for locked in $LOCKED
