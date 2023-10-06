@@ -98,7 +98,7 @@ LOCKED=$(kubectl logs ${EVENT_EXPORTER_POD} -n kube-system | \
 for locked in $LOCKED
 do
   LOCK_ID=$(echo $locked | cut -f 1 -d ':')
-  LOCK_OBJECT=$(echo $locked | cut -f 2 -d ':')
+  LOCKED_OBJECT=$(echo $locked | cut -f 2 -d ':')
 
 #  AWS DynamoDB should have an entry like this:
 #
