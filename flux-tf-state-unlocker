@@ -120,7 +120,7 @@ do
 
   if [ -n "${LOCKED_BY_RUNNER}" ]
   then
-    kubectl patch terraform ${LOCKED_OBJECT} --type=merge -n flux-system -p '{"spec":{"tfstate": {"forceUnlock":"auto"}}}'
+    kubectl patch terraform ${LOCKED_OBJECT} --type=merge -n flux-system -p "{\"spec\":{\"tfstate\": {\"forceUnlock\":\"yes\", \"lockIdentifier\": \"$LOCK_ID\"}}}"
   fi
   
 done
