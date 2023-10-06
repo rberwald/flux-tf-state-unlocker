@@ -114,7 +114,7 @@ do
   # Check who locked the terraform run
   WHO_LOCKED=$(aws dynamodb scan --table-name faber-terraform-locks | jq -r '.Items[] | select(.Info != null) | .Info.S' | jq -r --arg lock_id "$LOCK_ID" 'select(.ID == $lock_id)| .Who')
 
-  LOCKED_BY_RUNNER=$(echo $WHO_LOCKED | grep "^runner@${LOCK_OBJECT}-tf-runner")
+  LOCKED_BY_RUNNER=$(echo $WHO_LOCKED | grep "^runner@${LOCKED_OBJECT}-tf-runner")
 
   # LOCKED_BY_RUNNER is empty if the lock is hold by a human operator
 
