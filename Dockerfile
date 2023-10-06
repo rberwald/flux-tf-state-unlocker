@@ -13,7 +13,7 @@ RUN apt-get update && apt-get -y upgrade && apt install -y apt-transport-https c
     unzip awscliv2.zip && \
     ./aws/install && \
     chmod 755 /usr/bin/flux-tf-state-unlocker && \
-    groupadd -g 1000 runtime && useradd -g 1000 -u 1000 runtime
+    groupadd -g 1000 runtime && useradd -g 1000 -u 1000 -m runtime
 
 USER 1000
 
