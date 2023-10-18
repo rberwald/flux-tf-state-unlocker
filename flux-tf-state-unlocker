@@ -3,124 +3,83 @@
 exec 2>&1
 set -x
 
-#
-# Example event lines in event export
-#
-#{
-#  "metadata": {
-#    "name": "environment-management.17875d5c5580a5ef",
-#    "namespace": "flux-system",
-#    "uid": "9ff2f35c-bc45-49c4-993d-2ab91cdbd5f3",
-#    "resourceVersion": "78394894",
-#    "creationTimestamp": "2023-09-22T23:47:15Z",
-#    "annotations": {
-#      "infra.contrib.fluxcd.io/revision": "main@sha1:feaa6533ade779879716c0b7c6b455cc7aec860b"
-#    }
-#  },
-#  "reason": "Progressing",
-#  "message": "Apply error: State locked with Lock Identifier 151234d8-a64b-20c5-c4ef-23a61de3d554",
-#  "source": {
-#    "component": "tf-controller"
-#  },
-#  "firstTimestamp": "2023-09-22T23:47:15Z",
-#  "lastTimestamp": "2023-09-22T23:47:15Z",
-#  "count": 1,
-#  "type": "Warning",
-#  "eventTime": null,
-#  "reportingComponent": "",
-#  "reportingInstance": "",
-#  "clusterName": "",
-#  "involvedObject": {
-#    "kind": "Terraform",
-#    "namespace": "flux-system",
-#    "name": "environment-management",
-#    "uid": "8b8b6770-3914-4696-adde-0232130e1c06",
-#    "apiVersion": "infra.contrib.fluxcd.io/v1alpha2",
-#    "resourceVersion": "78390902",
-#    "labels": {
-#      "kustomize.toolkit.fluxcd.io/name": "cluster-configuration",
-#      "kustomize.toolkit.fluxcd.io/namespace": "flux-system"
-#    }
-#  }
-#}
-#{
-#  "metadata": {
-#    "name": "environment-management.17875d6a8accc35a",
-#    "namespace": "flux-system",
-#    "uid": "32cbc327-63cf-48ad-b088-6d8da204b40c",
-#    "resourceVersion": "78395316",
-#    "creationTimestamp": "2023-09-22T23:48:16Z",
-#    "annotations": {
-#      "infra.contrib.fluxcd.io/revision": "main@sha1:feaa6533ade779879716c0b7c6b455cc7aec860b"
-#    }
-#  },
-#  "reason": "Progressing",
-#  "message": "Drift detection error: State locked with Lock Identifier 151234d8-a64b-20c5-c4ef-23a61de3d554",
-#  "source": {
-#    "component": "tf-controller"
-#  },
-#  "firstTimestamp": "2023-09-22T23:48:16Z",
-#  "lastTimestamp": "2023-09-22T23:48:16Z",
-#  "count": 1,
-#  "type": "Warning",
-#  "eventTime": null,
-#  "reportingComponent": "",
-#  "reportingInstance": "",
-#  "clusterName": "",
-#  "involvedObject": {
-#    "kind": "Terraform",
-#    "namespace": "flux-system",
-#    "name": "environment-management",
-#    "uid": "8b8b6770-3914-4696-adde-0232130e1c06",
-#    "apiVersion": "infra.contrib.fluxcd.io/v1alpha2",
-#    "resourceVersion": "78394895",
-#    "labels": {
-#      "kustomize.toolkit.fluxcd.io/name": "cluster-configuration",
-#      "kustomize.toolkit.fluxcd.io/namespace": "flux-system"
-#    }
-#  }
-#}
-
 # Determine timestamp that lastTimestamp should be checked for
 export TZ=UTC # force all timestamps to be in UTC (+00:00 / Z)
 now=$(date +%s)
-start_date_epoch=$((now - 5*60))
+start_date_epoch=$((now - 500*60))
 printf -v start_date_iso8601 '%(%Y-%m-%dT%H:%M:%S+00:00)T' "$start_date_epoch"
 
-# Look up the events in the event exporter pod
-EVENT_EXPORTER_POD=$(kubectl get pod -n kube-system -l app=event-exporter -o=name)
+# Look up the events in the tf-controller pod
+TF_CONTROLLER_POD=$(kubectl get pod -n flux-system -l app.kubernetes.io/name=tf-controller -o=name)
 
-LOCKED=$(kubectl logs ${EVENT_EXPORTER_POD} -n kube-system | \
-  jq -r '. | select(.message|test(".*State locked with Lock Identifier.*")) | .' | \
-  jq -r --arg start_date "$start_date_iso8601" 'select($start_date < .lastTimestamp)| (.message | split(" ")[-1]) + ":" + .involvedObject.name' | \
-  sort -u)
-
-for locked in $LOCKED
-do
-  LOCK_ID=$(echo $locked | cut -f 1 -d ':')
-  LOCKED_OBJECT=$(echo $locked | cut -f 2 -d ':')
-
-#  AWS DynamoDB should have an entry like this:
+# Example log line from tf-controller
 #
-#        {
-#            "LockID": {
-#                "S": "faber-terraform-states/faber/management/terraform.tfstate"
-#            },
-#            "Info": {
-#                "S": "{\"ID\":\"96363d54-f7c5-ff10-43b6-8126a88bc3fd\",\"Operation\":\"OperationTypePlan\",\"Info\":\"\",\"Who\":\"Who\":\"runner@environment-management-tf-runner\",\"Version\":\"1.4.6\",\"Created\":\"2023-09-25T07:35:27.755421565Z\",\"Path\":\"faber-terraform-states/faber/management/terraform.tfstate\"}"
-#            }
-#        },
+#{
+#  "level": "error",
+# "ts": "2023-10-18T07:48:25.548Z",
+#  "msg": "Reconciliation failed after 45.469142739s, next try in 15s",
+#  "controller": "terraform",
+#  "controllerGroup": "infra.contrib.fluxcd.io",
+#  "controllerKind": "Terraform",
+#  "Terraform": {
+#    "name": "environment-management",
+#    "namespace": "flux-system"
+#  },
+#  "namespace": "flux-system",
+#  "name": "environment-management",
+#  "reconcileID": "c833bada-2175-48f8-afd2-7acbf3e721b4",
+#  "reconciliation-loop-id": "992329f6-98cc-41cd-892a-a7fd14452bd8",
+#  "start-time": "2023-10-18T07:47:40.078Z",
+#  "revision": "main@sha1:7c71990092d4845d36a415f7bfe401c5dd86946b",
+#  "error": "error running Plan: rpc error: code = Internal desc = error acquiring the state lock: Lock Info:\n  ID:        a334c6fa-f86b-5ec5-86cf-c5444666db2b\n  Path:      xential-terraform-states/xential/management/terraform.tfstate\n  Operation: OperationTypeApply\n  Who:       runner@environment-management-tf-runner\n  Version:   1.3.9\n  Created:   2023-10-18 07:05:29.609535083 +0000 UTC\n"
+#}
+#{
+#  "level": "info",
+#  "ts": "2023-10-18T07:48:32.372Z",
+#  "msg": "before lookup runner: checking ready condition",
+#  "controller": "terraform",
+#  "controllerGroup": "infra.contrib.fluxcd.io",
+#  "controllerKind": "Terraform",
+#  "Terraform": {
+#    "name": "environment-management",
+#    "namespace": "flux-system"
+#  },
+#  "namespace": "flux-system",
+#  "name": "environment-management",
+#  "reconcileID": "e349b8c9-39ca-452a-a05d-d44975b07793",
+#  "reconciliation-loop-id": "4b9da762-9f4a-441a-b1f9-18084765f73a",
+#  "start-time": "2023-10-18T07:48:32.372Z",
+#  "ready": "&Condition{Type:Ready,Status:False,ObservedGeneration:0,LastTransitionTime:2023-10-18 07:48:25 +0000 UTC,Reason:DriftDetectionFailed,Message:error running Plan: rpc error: code = Internal desc = error acquiring the state lock: Lock Info:\n  ID:        a334c6fa-f86b-5ec5-86cf-c5444666db2b\n  Path:      xential-terraform-states/xential/management/terraform.tfstate\n  Operation: OperationTypeApply\n  Who:       runner@environment-management-tf-runner\n  Version:   1.3.9\n  Created:   2023-10-18 07:05:29.609535083 +0000 UTC\n,}"
+#}
 
-  # Check who locked the terraform run
-  WHO_LOCKED=$(aws dynamodb scan --table-name faber-terraform-locks | jq -r '.Items[] | select(.Info != null) | .Info.S' | jq -r --arg lock_id "$LOCK_ID" 'select(.ID == $lock_id)| .Who')
+kubectl logs ${TF_CONTROLLER_POD} -n flux-system | \
+  grep '^{' | grep "error acquiring the state lock" | grep 'Lock Info' | \
+  jq -r -c --arg start_date "$start_date_iso8601" 'select($start_date < .ts) | .' |\
+  while read locked
+  do
+    LOCK_ID=$(echo $locked | jq -r '.ready + .error' | sed -e 's/.*ID: //' -e 's/n .*//')
+    LOCKED_OBJECT=$(echo $locked | jq -r '.name')
 
-  LOCKED_BY_RUNNER=$(echo $WHO_LOCKED | grep "^runner@${LOCKED_OBJECT}-tf-runner")
+    #  AWS DynamoDB should have an entry like this:
+    #
+    #        {
+    #            "LockID": {
+    #                "S": "company-terraform-states/faber/management/terraform.tfstate"
+    #            },
+    #            "Info": {
+    #                "S": "{\"ID\":\"96363d54-f7c5-ff10-43b6-8126a88bc3fd\",\"Operation\":\"OperationTypePlan\",\"Info\":\"\",\"Who\":\"Who\":\"runner@environment-management-tf-runner\",\"Version\":\"1.4.6\",\"Created\":\"2023-09-25T07:35:27.755421565Z\",\"Path\":\"company-terraform-states/company/management/terraform.tfstate\"}"
+    #            }
+    #        },
 
-  # LOCKED_BY_RUNNER is empty if the lock is hold by a human operator
+    # Check who locked the terraform run
+    WHO_LOCKED=$(aws dynamodb scan --table-name "${DYNAMODB_TABLE}"  | jq -r '.Items[] | select(.Info != null) | .Info.S' | jq -r --arg lock_id "$LOCK_ID" 'select(.ID == $lock_id)| .Who')
 
-  if [ -n "${LOCKED_BY_RUNNER}" ]
-  then
-    kubectl patch terraform ${LOCKED_OBJECT} --type=merge -n flux-system -p "{\"spec\":{\"tfstate\": {\"forceUnlock\":\"yes\", \"lockIdentifier\": \"$LOCK_ID\"}}}"
-  fi
+    LOCKED_BY_RUNNER=$(echo $WHO_LOCKED | grep "^runner@${LOCKED_OBJECT}-tf-runner")
+
+    # LOCKED_BY_RUNNER is empty if the lock is hold by a human operator
+    if [ -n "${LOCKED_BY_RUNNER}" ]
+    then
+      kubectl patch terraform ${LOCKED_OBJECT} --type=merge -n flux-system -p "{\"spec\":{\"tfstate\": {\"forceUnlock\":\"yes\", \"lockIdentifier\": \"$LOCK_ID\"}}}"
+    fi
   
-done
+  done
